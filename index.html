@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="da">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Min PWA</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1f2937">
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      margin: 0;
+      padding: 2rem;
+      background: #f3f4f6;
+      color: #111827;
+    }
+    .card {
+      max-width: 520px;
+      margin: auto;
+      background: white;
+      padding: 1.5rem;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.08);
+    }
+    button {
+      font-size: 1rem;
+      padding: .7rem 1rem;
+      border: 0;
+      border-radius: 10px;
+      background: #1f2937;
+      color: white;
+    }
+    #count {
+      font-weight: bold;
+      font-size: 1.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Min første PWA</h1>
+    <p>Denne lille app virker offline efter første besøg.</p>
+
+    <p>Tryk på knappen:</p>
+    <button id="btn">Klik mig</button>
+    <p>Antal klik: <span id="count">0</span></p>
+  </div>
+
+  <script>
+    let count = Number(localStorage.getItem("count") || 0);
+    const countEl = document.getElementById("count");
+    countEl.textContent = count;
+
+    document.getElementById("btn").addEventListener("click", () => {
+      count++;
+      localStorage.setItem("count", count);
+      countEl.textContent = count;
+    });
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("service-worker.js");
+    }
+  </script>
+</body>
+</html>

@@ -3,63 +3,351 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Min PWA</title>
+  <title>Hotel Sportsbooking</title>
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#1f2937">
+  <meta name="theme-color" content="#0f766e">
   <style>
-    body {
-      font-family: system-ui, sans-serif;
-      margin: 0;
-      padding: 2rem;
-      background: #f3f4f6;
-      color: #111827;
+    :root {
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --primary: #0f766e;
+      --danger: #b91c1c;
+      --border: #e2e8f0;
+      --warn: #92400e;
     }
-    .card {
-      max-width: 520px;
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    header {
+      background: var(--primary);
+      color: white;
+      padding: 1.25rem;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.35rem;
+    }
+    main {
+      padding: 1rem;
+      max-width: 900px;
       margin: auto;
-      background: white;
-      padding: 1.5rem;
+    }
+    .box, .activity {
+      background: var(--card);
+      border: 1px solid var(--border);
       border-radius: 16px;
-      box-shadow: 0 8px 24px rgba(0,0,0,.08);
+      padding: 1rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 4px 14px rgba(15,23,42,.06);
+    }
+    .activity h2 {
+      margin: 0 0 .25rem 0;
+      font-size: 1.2rem;
+    }
+    .meta, .small {
+      color: var(--muted);
+    }
+    .small {
+      font-size: .9rem;
+    }
+    .full {
+      color: var(--danger);
+      font-weight: 700;
+    }
+    .available {
+      color: var(--primary);
+      font-weight: 700;
+    }
+    .warning {
+      color: var(--warn);
+      font-weight: 700;
+    }
+    form {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: .5rem;
+      margin-top: .75rem;
+    }
+    input {
+      font: inherit;
+      padding: .75rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
     }
     button {
-      font-size: 1rem;
-      padding: .7rem 1rem;
+      font: inherit;
+      padding: .75rem 1rem;
       border: 0;
       border-radius: 10px;
-      background: #1f2937;
+      background: var(--primary);
       color: white;
+      font-weight: 700;
     }
-    #count {
-      font-weight: bold;
-      font-size: 1.5rem;
+    button.secondary {
+      background: #334155;
     }
+    button.danger {
+      background: var(--danger);
+    }
+    button:disabled {
+      background: #94a3b8;
+    }
+    .participants {
+      margin-top: .75rem;
+      padding-top: .75rem;
+      border-top: 1px solid var(--border);
+    }
+    .guest-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .5rem;
+      padding: .45rem 0;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .guest-row button {
+      padding: .45rem .7rem;
+      font-size: .9rem;
+    }
+    .actions {
+      display: flex;
+      gap: .5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    .status {
+      padding: .75rem;
+      border-radius: 12px;
+      margin-bottom: 1rem;
+      display: none;
+    }
+    .status.ok { display: block; background: #dcfce7; color: #166534; }
+    .status.error { display: block; background: #fee2e2; color: #991b1b; }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Min første PWA</h1>
-    <p>Denne lille app virker offline efter første besøg.</p>
+<header>
+  <h1>Hotel Sportsbooking</h1>
+</header>
 
-    <p>Tryk på knappen:</p>
-    <button id="btn">Klik mig</button>
-    <p>Antal klik: <span id="count">0</span></p>
-  </div>
+<main>
+  <section class="box">
+    <strong>Book en sportsaktivitet</strong>
+    <p class="small">
+      Bookinger gemmes i en fælles Supabase-database, så gæster kan se opdaterede pladser og deltagere på tværs af telefoner.
+    </p>
+  </section>
 
-  <script>
-    let count = Number(localStorage.getItem("count") || 0);
-    const countEl = document.getElementById("count");
-    countEl.textContent = count;
+  <div id="status" class="status"></div>
 
-    document.getElementById("btn").addEventListener("click", () => {
-      count++;
-      localStorage.setItem("count", count);
-      countEl.textContent = count;
+  <section class="actions">
+    <button class="secondary" id="refreshBtn">Opdatér</button>
+  </section>
+
+  <div id="activities"></div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+const localCodesKey = "hotelSportsCancellationCodesV1";
+
+function showStatus(message, type = "ok") {
+  const el = document.getElementById("status");
+  el.textContent = message;
+  el.className = "status " + type;
+  setTimeout(() => {
+    el.className = "status";
+  }, 5000);
+}
+
+function getLocalCodes() {
+  return JSON.parse(localStorage.getItem(localCodesKey) || "{}");
+}
+
+function saveLocalCodes(codes) {
+  localStorage.setItem(localCodesKey, JSON.stringify(codes));
+}
+
+function makeCancellationCode() {
+  const values = new Uint32Array(2);
+  crypto.getRandomValues(values);
+  return Array.from(values).map(v => v.toString(36)).join("-").toUpperCase();
+}
+
+async function loadData() {
+  const [activitiesResult, bookingsResult] = await Promise.all([
+    db.from("activities").select("*").order("activity_date").order("start_time"),
+    db.from("public_bookings").select("*").order("guest_name")
+  ]);
+
+  if (activitiesResult.error) throw activitiesResult.error;
+  if (bookingsResult.error) throw bookingsResult.error;
+
+  return {
+    activities: activitiesResult.data || [],
+    bookings: bookingsResult.data || []
+  };
+}
+
+async function bookActivity(activityId, guestName, roomNumber) {
+  const cancellationCode = makeCancellationCode();
+
+  const { data, error } = await db.rpc("book_activity", {
+    p_activity_id: activityId,
+    p_guest_name: guestName,
+    p_room_number: roomNumber,
+    p_cancellation_code: cancellationCode
+  });
+
+  if (error) {
+    showStatus(error.message, "error");
+    return;
+  }
+
+  const codes = getLocalCodes();
+  codes[data.booking_id] = cancellationCode;
+  saveLocalCodes(codes);
+
+  showStatus("Bookingen er gennemført.");
+  await render();
+}
+
+async function cancelBooking(bookingId) {
+  const codes = getLocalCodes();
+  const cancellationCode = codes[bookingId];
+
+  if (!cancellationCode) {
+    showStatus("Denne booking kan kun afbookes fra den browser, hvor den blev oprettet.", "error");
+    return;
+  }
+
+  const { data, error } = await db.rpc("cancel_booking", {
+    p_booking_id: bookingId,
+    p_cancellation_code: cancellationCode
+  });
+
+  if (error) {
+    showStatus(error.message, "error");
+    return;
+  }
+
+  delete codes[bookingId];
+  saveLocalCodes(codes);
+
+  showStatus("Bookingen er afbooket.");
+  await render();
+}
+
+function formatDate(dateStr) {
+  return new Date(dateStr + "T00:00:00").toLocaleDateString("da-DK", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long"
+  });
+}
+
+function formatTime(timeStr) {
+  return timeStr.slice(0, 5);
+}
+
+async function render() {
+  const container = document.getElementById("activities");
+  container.innerHTML = "<section class='box'>Henter aktiviteter...</section>";
+
+  try {
+    const { activities, bookings } = await loadData();
+    const localCodes = getLocalCodes();
+
+    container.innerHTML = "";
+
+    activities.forEach(activity => {
+      const participants = bookings.filter(b => b.activity_id === activity.id);
+      const placesLeft = activity.capacity - participants.length;
+      const isFull = placesLeft <= 0;
+
+      const card = document.createElement("section");
+      card.className = "activity";
+
+      card.innerHTML = `
+        <h2>${activity.title}</h2>
+        <div class="meta">${formatDate(activity.activity_date)} kl. ${formatTime(activity.start_time)} · ${activity.location}</div>
+        <div>
+          <span class="${isFull ? "full" : "available"}">
+            ${isFull ? "Holdet er fyldt" : placesLeft + " ledige pladser"}
+          </span>
+          <span class="small">(${participants.length}/${activity.capacity} booket)</span>
+        </div>
+
+        <form data-activity-id="${activity.id}">
+          <input name="guestName" placeholder="Gæstens navn" required ${isFull ? "disabled" : ""}>
+          <input name="roomNumber" placeholder="Værelsesnummer" required ${isFull ? "disabled" : ""}>
+          <button type="submit" ${isFull ? "disabled" : ""}>Book plads</button>
+        </form>
+
+        <div class="participants">
+          <strong>Deltagere</strong>
+          <div class="participant-list"></div>
+        </div>
+      `;
+
+      const list = card.querySelector(".participant-list");
+
+      if (participants.length === 0) {
+        list.innerHTML = "<p class='small'>Ingen bookinger endnu.</p>";
+      } else {
+        participants.forEach(p => {
+          const row = document.createElement("div");
+          row.className = "guest-row";
+          const canCancel = Boolean(localCodes[p.booking_id]);
+          row.innerHTML = `
+            <span>${p.guest_name} · værelse ${p.room_number}</span>
+            ${canCancel ? "<button class='danger' type='button'>Afbook</button>" : "<span class='small'>Booket</span>"}
+          `;
+          const btn = row.querySelector("button");
+          if (btn) {
+            btn.addEventListener("click", () => cancelBooking(p.booking_id));
+          }
+          list.appendChild(row);
+        });
+      }
+
+      card.querySelector("form").addEventListener("submit", async event => {
+        event.preventDefault();
+        const form = event.target;
+        await bookActivity(
+          form.dataset.activityId,
+          form.guestName.value.trim(),
+          form.roomNumber.value.trim()
+        );
+      });
+
+      container.appendChild(card);
     });
 
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("service-worker.js");
+    if (activities.length === 0) {
+      container.innerHTML = "<section class='box warning'>Der er ingen aktiviteter i databasen endnu.</section>";
     }
-  </script>
+  } catch (err) {
+    container.innerHTML = "";
+    showStatus("Kunne ikke hente data: " + err.message, "error");
+  }
+}
+
+document.getElementById("refreshBtn").addEventListener("click", render);
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("service-worker.js");
+}
+
+render();
+</script>
 </body>
 </html>

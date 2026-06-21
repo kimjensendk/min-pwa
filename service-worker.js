@@ -1,9 +1,10 @@
-const CACHE_NAME = "min-pwa-cache-v1";
+const CACHE_NAME = "hotel-sportsbooking-supabase-v1";
 const FILES = [
   ".",
   "index.html",
   "manifest.json",
-  "icon.svg"
+  "icon.svg",
+  "config.js"
 ];
 
 self.addEventListener("install", event => {
@@ -14,8 +15,6 @@ self.addEventListener("install", event => {
 
 self.addEventListener("fetch", event => {
   event.respondWith(
-    caches.match(event.request).then(cached => {
-      return cached || fetch(event.request);
-    })
+    caches.match(event.request).then(cached => cached || fetch(event.request))
   );
 });

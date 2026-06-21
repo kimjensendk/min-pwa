@@ -1,4 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="96" fill="#1f2937"/>
-  <text x="256" y="300" text-anchor="middle" font-size="180" font-family="Arial" fill="white">PWA</text>
+  <rect width="512" height="512" rx="96" fill="#0f766e"/>
+  <circle cx="256" cy="142" r="52" fill="white"/>
+  <path d="M158 398c20-110 176-110 196 0" fill="none" stroke="white" stroke-width="42" stroke-linecap="round"/>
+  <path d="M144 234h224M188 234l-52 88M324 234l52 88" stroke="white" stroke-width="34" stroke-linecap="round"/>
 </svg>
